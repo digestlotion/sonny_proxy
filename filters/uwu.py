@@ -1,10 +1,4 @@
-try:
-    from uwuipy import Uwuipy
-except ImportError:
-    from uwuipy import uwuipy as Uwuipy
-
-
-ORDER = 1
+from uwuipy import Uwuipy
 _uwu = Uwuipy()
 
 async def apply(text: str, _=None) -> str:

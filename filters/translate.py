@@ -1,10 +1,5 @@
-import asyncio
-import aiohttp
+import aiohttp, asyncio
 
-NEEDS_ARG = "a language code, like es, ja or fr"
-ORDER = 0
-
-# shortcut: unofficial free Google endpoint, can rate-limit or break; swap in DeepL or Cloud Translation if it gets flaky
 async def apply(text: str, lang: str) -> str:
     try:
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as s:
