@@ -1,5 +1,11 @@
-# Sonny Extension Framework
-Simple extension frame to help jumpstart development
+### Proxy
+# Sends a message as a proxy!
 
-Extensions are really just cogs, so if you're familiar with discord.py cogs, you probably wont need this.
-Cogs: https://discordpy.readthedocs.io/en/stable/ext/commands/api.html#cogs
+Has fun filters to change your messages
+You can create and add your own filters
+
+# Permissions
+- View channels
+- Manage Messages
+- Manage Webhooks
+- Read message history
