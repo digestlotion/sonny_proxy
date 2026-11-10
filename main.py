@@ -34,7 +34,9 @@ class Proxy(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(name="edit", description="Edit your proxy profile")
+    proxy = app_commands.Group(name="proxy", description="Manage proxy profiles")
+
+    @proxy.command(name="edit", description="Edit your proxy profile")
     async def proxy_edit(
         self,
         interaction: discord.Interaction,
@@ -53,13 +55,13 @@ class Proxy(commands.Cog):
             
         await interaction.response.send_message("Updated!", ephemeral=True)
 
-    @app_commands.command(name="list", description="List your proxy profiles")
+    @proxy.command(name="list", description="List your proxy profiles")
     async def proxy_list(self, interaction: discord.Interaction):
         profiles = get_profiles(interaction.user.id)
         if not profiles: await interaction.response.send_message("None or failed", ephemeral=True)
         else: await interaction.response.send_message(profiles, ephemeral=True)
 
-    @app_commands.command(name="delete", description="Delete a proxy profile")
+    @proxy.command(name="delete", description="Delete a proxy profile")
     async def proxy_delete(self, interaction: discord.Interaction, name: str):
         profiles = get_profiles(interaction.user.id)
         if not (p for p in profiles if p[1] == name): await interaction.response.send_message("No profile of that name")
@@ -67,13 +69,29 @@ class Proxy(commands.Cog):
         profiles = get_profiles(interaction.user.id)
         if (p for p in profiles if p[1] == name): await interaction.response.send_message("Deleted", ephemeral=True)
 
-    @app_commands.command(name="lock", description="Lock a user to a filter.")
+    @proxy.command(name="lock", description="Lock a user to a filter.")
     async def filter_lock(self, interaction: discord.Interaction, member: discord.Member,
         filter: Literal[tuple(FILTERS) + ("None",)], filter_arg: str | None = None):
         if not permission.check(interaction.guild_id, interaction.user.id, "filter_lock"):
              await interaction.response.send_message(":x: No permission")
         db.insert("sonny_proxy$locks", ("serverid", "userid"), ("filter",), (interaction.guild_id, member.id, Jsonb({filter: filter_arg})))
         await interaction.response.send_message(f"Locked {member.name} to {filter}", ephemeral=True)
+
+    @proxy.command(name="locks", description="View a filter lock on a user.")
+    async def filter_lock_list(self, interaction: discord.Interaction, member: discord.Member | None = None):
+        if not permission.check(interaction.guild_id, interaction.user.id, "filter_lock"):
+                await interaction.response.send_message(":x: No permission")
+        if member:
+            id = member.id
+        else:
+            id = interaction.user.id
+
+        filter = db.get("sonny_proxy$locks", (interaction.guild.id, id), ("serverid", "userid"), ("filter",))
+        if filter:
+            await interaction.response.send_message(filter, ephemeral=True)
+        else:
+            await interaction.response.send_message("None or failed", ephemeral=True)
+            
         
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -90,10 +108,9 @@ class Proxy(commands.Cog):
         if not profile: return
 
         lock = db.get("sonny_proxy$locks", (message.guild.id, message.author.id), ("serverid", "userid"), ("filter",))
-        if not lock: return
         for f, m in FILTERS.items():
-            if f in lock: content = await m.apply(content, lock[f])
-            elif f in profile[4]: content = await m.apply(content, profile[4][f])
+            if lock and f in lock: content = await m.apply(content, lock[f])
+            elif profile[4] and f in profile[4]: content = await m.apply(content, profile[4][f])
 
         hooks = await message.channel.webhooks()
         hook = next((h for h in hooks if h.user == message.guild.me and h.token), None) or await message.channel.create_webhook(name="proxy")
